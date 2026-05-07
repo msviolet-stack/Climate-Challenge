@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission Environment: Multiplayer Board Game</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", Arial, sans-serif;
+      background: linear-gradient(135deg, #e7f7df, #d8f3ff);
+      color: #234;
+    }
+    header {
+      text-align: center;
+      padding: 18px 12px 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 54px);
+      color: #2f6954;
+      letter-spacing: 1px;
+    }
+    .subtitle {
+      margin-top: 6px;
+      font-size: clamp(15px, 2vw, 20px);
+      color: #52635b;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 1fr 330px;
+      gap: 18px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+    .board-wrap, .panel {
+      background: rgba(255,255,255,.86);
+      border-radius: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.12);
+      border: 4px solid rgba(67,137,93,.2);
+    }
+    .board-wrap {
+      position: relative;
+      min-height: 700px;
+      overflow: hidden;
+      padding: 18px;
+    }
+    .board {
+      position: relative;
+      width: 100%;
+      height: 660px;
+      background: #f7f1d8;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 4px solid #c8d7a8;
+    }
+    .path {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(111,174,117,.45) 0 9%, transparent 10%),
+        radial-gradient(circle at 71% 29%, rgba(111,174,117,.45) 0 12%, transparent 13%),
+        radial-gradient(circle at 38% 67%, rgba(111,174,117,.38) 0 11%, transparent 12%);
+      pointer-events: none;
+    }
+    .decor { position: absolute; font-size: 48px; opacity: .92; pointer-events: none; }
+    .tile {
+      position: absolute;
+      width: 96px;
+      height: 76px;
+      border-radius: 18px;
+      background: #73b37b;
+      border: 3px solid rgba(255,255,255,.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 800;
+      color: #fff;
+      font-size: 13px;
+      padding: 6px;
+      box-shadow: 0 5px 10px rgba(0,0,0,.15);
+    }
+    .tile.start { background: #42a383; font-size: 22px; }
+    .tile.end { background: #5ca55d; font-size: 21px; }
+    .tile.current { outline: 5px solid #ffd166; transform: scale(1.04); z-index: 2; }
+    .tokens {
+      position: absolute;
+      width: 96px;
+      height: 76px;
+      pointer-events: none;
+      z-index: 8;
+      transition: left .42s ease, top .42s ease;
+    }
+    .token {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      box-shadow: 0 3px 7px rgba(0,0,0,.25);
+      border: 2px solid white;
+    }
+    .p0 { background: #ff6b6b; left: 8px; top: 7px; }
+    .p1 { background: #4dabf7; left: 55px; top: 7px; }
+    .p2 { background: #ffd43b; left: 8px; top: 40px; }
+    .p3 { background: #b197fc; left: 55px; top: 40px; }
+    .panel { padding: 16px; }
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 14px;
+      margin-bottom: 14px;
+      border: 2px solid #e3eed8;
+    }
+    .card h2, .card h3 { margin: 0 0 10px; color: #2f6954; }
+    .setup-row { margin: 10px 0; }
+    label { font-weight: 800; display: block; margin-bottom: 5px; }
+    select, input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 14px;
+      border: 2px solid #cde0c5;
+      font-size: 15px;
+    }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      background: #2f8f68;
+      color: white;
+      box-shadow: 0 5px 12px rgba(0,0,0,.14);
+      margin: 4px 0;
+    }
+    button.secondary { background: #627d98; }
+    button.warning { background: #d9480f; }
+    button:disabled { background: #aab7ad; cursor: not-allowed; }
+    .full { width: 100%; }
+    .player-list { display: grid; gap: 8px; }
+    .player {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      background: #f1f8ed;
+      border-radius: 14px;
+      padding: 8px;
+      border: 2px solid transparent;
+    }
+    .player.active { border-color: #ffd166; background: #fff8dd; }
+    .badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      border: 2px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+    .score { font-weight: 900; color: #2f6954; }
+    .dice {
+      font-size: 54px;
+      text-align: center;
+      background: #fff8dd;
+      border-radius: 20px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 3px dashed #ffd166;
+    }
+    .question-text {
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.3;
+      margin: 10px 0;
+    }
+    .options { display: grid; gap: 9px; }
+    .option {
+      background: #edf7ff;
+      color: #17324d;
+      box-shadow: none;
+      border: 2px solid #c9e7ff;
+      text-align: left;
+    }
+    .feedback {
+      min-height: 32px;
+      margin-top: 10px;
+      font-weight: 900;
+      line-height: 1.35;
+    }
+    .correct { color: #2b8a3e; }
+    .wrong { color: #c92a2a; }
+    .hidden { display: none; }
+    .small { font-size: 13px; color: #65746c; line-height: 1.35; }
+    .footer-note { text-align: center; padding: 6px 10px 18px; color: #60736a; font-size: 13px; }
+
+    @media (max-width: 920px) {
+      .app { grid-template-columns: 1fr; }
+      .board-wrap { min-height: 520px; }
+      .board { height: 500px; }
+      .tile { width: 78px; height: 61px; font-size: 11px; }
+      .tokens { width: 78px; height: 61px; }
+      .decor { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌍 Mission Environment</h1>
+    <div class="subtitle">Multiplayer board game | Mixed difficulty | Save the forest!</div>
+  </header>
+
+  <main class="app">
+    <section class="board-wrap">
+      <div class="board" id="board">
+        <div class="path"></div>
+        <div class="decor" style="left:8%;top:76%">🐘</div>
+        <div class="decor" style="left:83%;top:55%">🦌</div>
+        <div class="decor" style="left:69%;top:49%">🐗</div>
+        <div class="decor" style="left:44%;top:18%">🌳</div>
+        <div class="decor" style="left:59%;top:67%">🧴</div>
+        <div class="decor" style="left:18%;top:52%">🗑️</div>
+        <div class="decor" style="left:78%;top:19%">🌡️</div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="card" id="setupCard">
+        <h2>Game Setup</h2>
+        <div class="setup-row">
+          <label for="playerCount">Number of players</label>
+          <select id="playerCount">
+            <option value="2">2 players</option>
+            <option value="3">3 players</option>
+            <option value="4">4 players</option>
+          </select>
+        </div>
+        <div id="nameInputs"></div>
+        <button class="full" onclick="startGame()">Start Game</button>
+        <p class="small">Rule: Roll the dice, answer the question. Correct answer = stay on the new tile. Wrong answer = move back to your old tile.</p>
+      </div>
+
+      <div class="card hidden" id="gameCard">
+        <h2>Current Turn</h2>
+        <div id="turnInfo" class="question-text"></div>
+        <div class="dice" id="dice">🎲</div>
+        <button class="full" id="rollBtn" onclick="rollDice()">Roll Dice</button>
+        <button class="full secondary hidden" id="nextBtn" onclick="nextTurn()">Next Player</button>
+      </div>
+
+      <div class="card hidden" id="questionCard">
+        <h3>Question</h3>
+        <div id="questionText" class="question-text"></div>
+        <div id="options" class="options"></div>
+        <div id="feedback" class="feedback"></div>
+      </div>
+
+      <div class="card hidden" id="playersCard">
+        <h3>Players</h3>
+        <div id="playerList" class="player-list"></div>
+      </div>
+
+      <div class="card hidden" id="winnerCard">
+        <h2>🏆 Mission Complete!</h2>
+        <div id="winnerText" class="question-text"></div>
+        <button class="full" onclick="resetGame()">Play Again</button>
+      </div>
+
+      <button class="full warning" onclick="resetGame()">Reset</button>
+    </aside>
+  </main>
+
+  <div class="footer-note">Created as a classroom-friendly online activity inspired by the Mission Environment board game.</div>
+
+  <script>
+    const board = document.getElementById('board');
+    const tileData = [
+      { label: 'START', type: 'start', x: 8, y: 7 },
+      { label: 'Greenhouse Gas', x: 25, y: 18 },
+      { label: 'Trees', x: 41, y: 17 },
+      { label: 'Temperature', x: 62, y: 20 },
+      { label: 'Deforestation', x: 70, y: 37 },
+      { label: 'Net Zero', x: 49, y: 42 },
+      { label: 'Food Waste', x: 25, y: 48 },
+      { label: 'Landfill', x: 22, y: 63 },
+      { label: 'Carbon Dioxide', x: 43, y: 66 },
+      { label: 'Animals', x: 66, y: 64 },
+      { label: 'Plastic', x: 64, y: 79 },
+      { label: 'END', type: 'end', x: 45, y: 84 }
+    ];
+
+    const questions = [
+      { q: 'Name a greenhouse gas.', options: ['Carbon dioxide', 'Oxygen', 'Salt', 'Sand'], answer: 0, explain: 'Carbon dioxide is one greenhouse gas.' },
+      { q: 'Trees are important to keep the planet cool. True or false?', options: ['True', 'False'], answer: 0, explain: 'Trees provide shade and absorb carbon dioxide.' },
+      { q: 'Climate change always leads to increased temperatures everywhere. True or false?', options: ['True', 'False'], answer: 1, explain: 'Climate change can cause different effects, including extreme weather, floods, droughts and unusual cold spells.' },
+      { q: 'Deforestation means removing a forest for other land uses. True or false?', options: ['True', 'False'], answer: 0, explain: 'Deforestation is the clearing or removal of forests.' },
+      { q: 'By which year does Singapore aim to hit net-zero carbon emissions?', options: ['2030', '2050'], answer: 1, explain: 'Singapore aims to achieve net-zero emissions by 2050.' },
+      { q: 'How much food is wasted in Singapore every day?', options: ['About 20,000 kg', 'About 2,000,000 kg'], answer: 1, explain: 'The larger answer is the intended answer in the newspaper activity.' },
+      { q: 'What is the name of Singapore’s landfill?', options: ['Semakau Landfill', 'Semawa Landfill'], answer: 0, explain: 'Singapore’s offshore landfill is Semakau Landfill.' },
+      { q: 'Since carbon dioxide is a greenhouse gas, the world would be better if there was no carbon dioxide at all. True or false?', options: ['True', 'False'], answer: 1, explain: 'We need some carbon dioxide. The problem is having too much of it.' },
+      { q: 'Animals are unaffected by climate change. True or false?', options: ['True', 'False'], answer: 1, explain: 'Climate change affects animal habitats, food sources and survival.' },
+      { q: 'Plastic is biodegradable, which means it can decompose easily. True or false?', options: ['True', 'False'], answer: 1, explain: 'Most plastics do not break down easily.' },
+      { q: 'Which action helps reduce waste?', options: ['Use a reusable bottle', 'Throw away food daily', 'Use many plastic bags', 'Leave lights on'], answer: 0, explain: 'A reusable bottle helps reduce single-use plastic waste.' },
+      { q: 'Which is an example of renewable energy?', options: ['Solar energy', 'Coal', 'Petrol', 'Diesel'], answer: 0, explain: 'Solar energy comes from the sun and can be renewed naturally.' },
+      { q: 'What should you do with clean paper that you no longer need?', options: ['Recycle it', 'Burn it', 'Throw it on the floor', 'Hide it'], answer: 0, explain: 'Clean paper can usually be recycled.' },
+      { q: 'Which habit saves electricity?', options: ['Switch off lights when not in use', 'Keep air-con on with windows open', 'Charge devices overnight daily', 'Turn on all fans'], answer: 0, explain: 'Switching off unused lights saves electricity.' },
+      { q: 'Why are oceans important in climate change?', options: ['They absorb some heat and carbon dioxide', 'They create plastic', 'They stop all storms', 'They do not matter'], answer: 0, explain: 'Oceans absorb heat and some carbon dioxide, but they are affected too.' }
+    ];
+
+    const tokenIcons = ['🐼','🐢','🦊','🐯'];
+    let players = [];
+    let current = 0;
+    let oldPosition = 0;
+    let questionAnswered = false;
+
+    function makeNameInputs() {
+      const count = Number(document.getElementById('playerCount').value);
+      const box = document.getElementById('nameInputs');
+      box.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        box.innerHTML += `<div class="setup-row"><label>Player ${i+1}</label><input id="pname${i}" value="Player ${i+1}" /></div>`;
+      }
+    }
+
+    document.getElementById('playerCount').addEventListener('change', makeNameInputs);
+    makeNameInputs();
+
+    function drawBoard() {
+      document.querySelectorAll('.tile,.tokens').forEach(e => e.remove());
+      tileData.forEach((tile, i) => {
+        const el = document.createElement('div');
+        el.className = `tile ${tile.type || ''}`;
+        el.id = `tile${i}`;
+        el.style.left = tile.x + '%';
+        el.style.top = tile.y + '%';
+        el.textContent = tile.label;
+        board.appendChild(el);
+      });
+      players.forEach((p, i) => {
+        const holder = document.createElement('div');
+        holder.className = 'tokens';
+        holder.id = `tokenHolder${i}`;
+        const token = document.createElement('div');
+        token.className = `token p${i}`;
+        token.textContent = tokenIcons[i];
+        holder.appendChild(token);
+        board.appendChild(holder);
+        moveToken(i);
+      });
+    }
+
+    function startGame() {
+      const count = Number(document.getElementById('playerCount').value);
+      players = [];
+      for (let i = 0; i < count; i++) {
+        players.push({ name: document.getElementById(`pname${i}`).value || `Player ${i+1}`, pos: 0, score: 0 });
+      }
+      current = 0;
+      document.getElementById('setupCard').classList.add('hidden');
+      document.getElementById('gameCard').classList.remove('hidden');
+      document.getElementById('playersCard').classList.remove('hidden');
+      document.getElementById('winnerCard').classList.add('hidden');
+      document.getElementById('questionCard').classList.add('hidden');
+      drawBoard();
+      updateUI();
+    }
+
+    function moveToken(playerIndex) {
+      const p = players[playerIndex];
+      const tile = tileData[p.pos];
+      const holder = document.getElementById(`tokenHolder${playerIndex}`);
+      if (!holder) return;
+      holder.style.left = tile.x + '%';
+      holder.style.top = tile.y + '%';
+    }
+
+    function updateUI() {
+      document.querySelectorAll('.tile').forEach(e => e.classList.remove('current'));
+      if (players[current]) document.getElementById(`tile${players[current].pos}`).classList.add('current');
+      document.getElementById('turnInfo').innerHTML = `${tokenIcons[current]} <b>${players[current].name}</b>'s turn`;
+      document.getElementById('rollBtn').disabled = false;
+      document.getElementById('nextBtn').classList.add('hidden');
+      document.getElementById('dice').textContent = '🎲';
+      updatePlayerList();
+    }
+
+    function updatePlayerList() {
+      const list = document.getElementById('playerList');
+      list.innerHTML = '';
+      players.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = `player ${i === current ? 'active' : ''}`;
+        row.innerHTML = `<div class="badge p${i}">${tokenIcons[i]}</div><div><b>${p.name}</b><br><span class="small">Tile ${p.pos} / ${tileData.length - 1}</span></div><div class="score">⭐ ${p.score}</div>`;
+        list.appendChild(row);
+      });
+    }
+
+    function rollDice() {
+      document.getElementById('rollBtn').disabled = true;
+      document.getElementById('feedback').textContent = '';
+      oldPosition = players[current].pos;
+      const dice = Math.floor(Math.random() * 6) + 1;
+      document.getElementById('dice').textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][dice-1];
+      players[current].pos = Math.min(players[current].pos + dice, tileData.length - 1);
+      moveToken(current);
+      updatePlayerList();
+
+      setTimeout(() => {
+        if (players[current].pos === tileData.length - 1) {
+          showWinner(players[current].name);
+        } else {
+          showQuestion(players[current].pos);
+        }
+      }, 500);
+    }
+
+    function showQuestion(pos) {
+      questionAnswered = false;
+      const q = questions[(pos - 1 + Math.floor(Math.random() * questions.length)) % questions.length];
+      window.currentQuestion = q;
+      document.getElementById('questionCard').classList.remove('hidden');
+      document.getElementById('questionText').textContent = q.q;
+      const options = document.getElementById('options');
+      options.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option';
+        btn.textContent = opt;
+        btn.onclick = () => answerQuestion(i);
+        options.appendChild(btn);
+      });
+    }
+
+    function answerQuestion(choice) {
+      if (questionAnswered) return;
+      questionAnswered = true;
+      const q = window.currentQuestion;
+      const feedback = document.getElementById('feedback');
+      document.querySelectorAll('.option').forEach(b => b.disabled = true);
+
+      if (choice === q.answer) {
+        players[current].score += 1;
+        feedback.className = 'feedback correct';
+        feedback.textContent = 'Correct! ' + q.explain;
+      } else {
+        players[current].pos = oldPosition;
+        moveToken(current);
+        feedback.className = 'feedback wrong';
+        feedback.textContent = 'Not quite. ' + q.explain + ' Move back to your previous tile.';
+      }
+      updatePlayerList();
+      document.getElementById('nextBtn').classList.remove('hidden');
+    }
+
+    function nextTurn() {
+      document.getElementById('questionCard').classList.add('hidden');
+      current = (current + 1) % players.length;
+      updateUI();
+    }
+
+    function showWinner(name) {
+      document.getElementById('gameCard').classList.add('hidden');
+      document.getElementById('questionCard').classList.add('hidden');
+      document.getElementById('winnerCard').classList.remove('hidden');
+      document.getElementById('winnerText').innerHTML = `${name} saved the forest! 🌳<br><span class="small">Well done, eco-hero!</span>`;
+      updatePlayerList();
+    }
+
+    function resetGame() {
+      players = [];
+      current = 0;
+      document.getElementById('setupCard').classList.remove('hidden');
+      document.getElementById('gameCard').classList.add('hidden');
+      document.getElementById('questionCard').classList.add('hidden');
+      document.getElementById('playersCard').classList.add('hidden');
+      document.getElementById('winnerCard').classList.add('hidden');
+      document.querySelectorAll('.tile,.tokens').forEach(e => e.remove());
+      makeNameInputs();
+    }
+  </script>
+</body>
+</html>
