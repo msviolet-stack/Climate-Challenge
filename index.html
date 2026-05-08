@@ -1,604 +1,871 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mission Environment: Multiplayer Board Game</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Trebuchet MS", Arial, sans-serif;
-      background: linear-gradient(135deg, #eef8df, #fff7df);
-      color: #14351f;
-    }
-    header {
-      text-align: center;
-      padding: 18px 12px 6px;
-    }
-    h1 {
-      margin: 0;
-      font-size: clamp(34px, 5.4vw, 66px);
-      color: #2d7d2f;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      text-shadow: 2px 4px 0 rgba(111, 174, 74, .18);
-    }
-    .subtitle {
-      margin-top: 4px;
-      font-size: clamp(16px, 2vw, 24px);
-      color: #2b3430;
-      font-weight: 800;
-    }
-    .app {
-      display: grid;
-      grid-template-columns: 1fr 330px;
-      gap: 16px;
-      max-width: 1420px;
-      margin: 0 auto;
-      padding: 12px;
-    }
-    .board-wrap, .panel {
-      background: #fffdf0;
-      border-radius: 32px;
-      box-shadow: 0 12px 26px rgba(52, 110, 45, .18);
-      border: 5px solid #6daa45;
-    }
-    .board-wrap {
-      position: relative;
-      min-height: 760px;
-      overflow: hidden;
-      padding: 16px;
-    }
-    .board {
-      position: relative;
-      width: 100%;
-      height: 720px;
-      background:
-        radial-gradient(circle at 13% 13%, rgba(182,221,132,.58) 0 10%, transparent 11%),
-        radial-gradient(circle at 74% 20%, rgba(197,228,141,.58) 0 13%, transparent 14%),
-        radial-gradient(circle at 39% 51%, rgba(190,224,130,.45) 0 12%, transparent 13%),
-        radial-gradient(circle at 90% 70%, rgba(196,225,116,.35) 0 14%, transparent 15%),
-        linear-gradient(#fffced, #fff8dc);
-      border-radius: 28px;
-      overflow: hidden;
-      border: 3px solid #d7e8be;
-    }
-    .route-svg {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .decor { position: absolute; font-size: 48px; z-index: 1; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(0,0,0,.14)); }
-    .signpost {
-      position: absolute;
-      left: 2%;
-      top: 3%;
-      width: 190px;
-      height: 160px;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .pole { position: absolute; left: 83px; top: 12px; width: 25px; height: 140px; background: linear-gradient(90deg,#7c431b,#b97931,#7c431b); border-radius: 12px; border: 3px solid #754316; }
-    .flag { position: absolute; left: 95px; top: 8px; width: 85px; height: 38px; background: #3c9b36; border-radius: 0 22px 22px 0; transform: skewY(-10deg); box-shadow: 0 5px 8px rgba(0,0,0,.16); }
-    .arrow {
-      position: absolute;
-      left: 38px;
-      top: 56px;
-      width: 135px;
-      height: 58px;
-      background: #4f9f32;
-      border: 4px solid #7b4f20;
-      border-radius: 10px 0 0 10px;
-      display: grid;
-      place-items: center;
-      color: white;
-      font-size: 30px;
-      font-weight: 900;
-      text-shadow: 0 3px 0 rgba(0,0,0,.15);
-    }
-    .arrow:after {
-      content: '';
-      position: absolute;
-      right: -32px;
-      top: 8px;
-      border-top: 19px solid transparent;
-      border-bottom: 19px solid transparent;
-      border-left: 32px solid #4f9f32;
-    }
-    .tile {
-      position: absolute;
-      width: 126px;
-      height: 122px;
-      border-radius: 18px;
-      background: linear-gradient(#f8fff3, #eef8d8);
-      border: 5px solid #73aa50;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-weight: 900;
-      color: #173d20;
-      font-size: 17px;
-      padding: 8px 6px 6px;
-      box-shadow: 0 8px 12px rgba(57, 96, 44, .23);
-      z-index: 3;
-    }
-    .tile .num {
-      position: absolute;
-      left: -15px;
-      top: -17px;
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: #2f7d33;
-      color: white;
-      display: grid;
-      place-items: center;
-      font-size: 24px;
-      border: 4px solid white;
-      box-shadow: 0 4px 7px rgba(0,0,0,.18);
-    }
-    .tile .pic { font-size: 42px; line-height: 1; margin-bottom: 5px; }
-    .tile.start { display: none; }
-    .tile.end {
-      width: 142px;
-      height: 88px;
-      border-radius: 20px;
-      background: linear-gradient(#5ab548, #1d7429);
-      color: #fff;
-      font-size: 42px;
-      letter-spacing: 1px;
-      border-color: #75b653;
-      text-shadow: 0 3px 0 rgba(0,0,0,.16);
-    }
-    .tile.current { outline: 8px solid #ffc21c; transform: scale(1.05); z-index: 5; }
-    .tokens {
-      position: absolute;
-      width: 126px;
-      height: 122px;
-      pointer-events: none;
-      z-index: 9;
-      transition: left .42s ease, top .42s ease;
-    }
-    .token {
-      position: absolute;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-size: 18px;
-      box-shadow: 0 3px 7px rgba(0,0,0,.25);
-      border: 2px solid white;
-    }
-    .p0 { background: #ff6b6b; left: 12px; top: 10px; }
-    .p1 { background: #4dabf7; left: 78px; top: 10px; }
-    .p2 { background: #ffd43b; left: 12px; top: 76px; }
-    .p3 { background: #b197fc; left: 78px; top: 76px; }
-    .learning-strip {
-      position: absolute;
-      left: 11%;
-      right: 7%;
-      bottom: 14px;
-      min-height: 88px;
-      background: rgba(255,255,245,.94);
-      border: 3px solid #d7e5c8;
-      border-radius: 18px;
-      z-index: 2;
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-      align-items: center;
-      padding: 10px 16px;
-      box-shadow: 0 6px 12px rgba(0,0,0,.08);
-    }
-    .learn-item { display: grid; grid-template-columns: 46px 1fr; gap: 8px; align-items: center; font-size: 12px; color: #20352a; }
-    .learn-icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 25px; background: #f2c94c; }
-    .learn-item b { display:block; font-size: 15px; }
-    .panel { padding: 16px; }
-    .card {
-      background: #ffffff;
-      border-radius: 22px;
-      padding: 14px;
-      margin-bottom: 14px;
-      border: 2px solid #dbeac8;
-    }
-    .card h2, .card h3 { margin: 0 0 10px; color: #2f7d33; }
-    .setup-row { margin: 10px 0; }
-    label { font-weight: 800; display: block; margin-bottom: 5px; }
-    select, input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 14px;
-      border: 2px solid #cde0c5;
-      font-size: 15px;
-    }
-    button {
-      border: 0;
-      border-radius: 16px;
-      padding: 12px 14px;
-      font-size: 16px;
-      font-weight: 900;
-      cursor: pointer;
-      background: #2f8f68;
-      color: white;
-      box-shadow: 0 5px 12px rgba(0,0,0,.14);
-      margin: 4px 0;
-    }
-    button.secondary { background: #627d98; }
-    button.warning { background: #d9480f; }
-    button:disabled { background: #aab7ad; cursor: not-allowed; }
-    .full { width: 100%; }
-    .player-list { display: grid; gap: 8px; }
-    .player {
-      display: grid;
-      grid-template-columns: 34px 1fr auto;
-      align-items: center;
-      gap: 8px;
-      background: #f1f8ed;
-      border-radius: 14px;
-      padding: 8px;
-      border: 2px solid transparent;
-    }
-    .player.active { border-color: #ffd166; background: #fff8dd; }
-    .badge {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      border: 2px solid white;
-      box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    }
-    .score { font-weight: 900; color: #2f6954; }
-    .dice {
-      font-size: 54px;
-      text-align: center;
-      background: #fff8dd;
-      border-radius: 20px;
-      padding: 10px;
-      margin-bottom: 10px;
-      border: 3px dashed #ffd166;
-    }
-    .question-text {
-      font-size: 18px;
-      font-weight: 900;
-      line-height: 1.3;
-      margin: 10px 0;
-    }
-    .options { display: grid; gap: 9px; }
-    .option {
-      background: #edf7ff;
-      color: #17324d;
-      box-shadow: none;
-      border: 2px solid #c9e7ff;
-      text-align: left;
-    }
-    .feedback {
-      min-height: 32px;
-      margin-top: 10px;
-      font-weight: 900;
-      line-height: 1.35;
-    }
-    .correct { color: #2b8a3e; }
-    .wrong { color: #c92a2a; }
-    .hidden { display: none; }
-    .small { font-size: 13px; color: #65746c; line-height: 1.35; }
-    .footer-note { text-align: center; padding: 6px 10px 18px; color: #60736a; font-size: 13px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Learning Journey</title>
 
-    @media (max-width: 920px) {
-      .app { grid-template-columns: 1fr; }
-      .board-wrap { min-height: 560px; }
-      .board { height: 520px; }
-      .tile { width: 88px; height: 86px; font-size: 12px; border-width: 3px; }
-      .tile .pic { font-size: 30px; }
-      .tile .num { width: 30px; height: 30px; font-size: 17px; }
-      .tile.end { width: 96px; height: 64px; font-size: 28px; }
-      .tokens { width: 88px; height: 86px; }
-      .decor { font-size: 30px; }
-      .learning-strip { display: none; }
-      .signpost { transform: scale(.65); transform-origin: top left; }
-    }
-  </style>
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#eef7df;
+  color:#14351f;
+}
+
+header{
+  text-align:center;
+  padding:20px;
+}
+
+h1{
+  margin:0;
+  font-size:60px;
+  color:#2d7d2f;
+  font-weight:900;
+}
+
+.subtitle{
+  font-size:24px;
+  font-weight:bold;
+}
+
+.app{
+  display:grid;
+  grid-template-columns:1fr 320px;
+  gap:16px;
+  max-width:1400px;
+  margin:auto;
+  padding:10px;
+}
+
+.board-wrap,
+.panel{
+  background:#fffdf0;
+  border:5px solid #6daa45;
+  border-radius:30px;
+  padding:15px;
+}
+
+.board{
+  position:relative;
+  width:100%;
+  height:720px;
+  border-radius:25px;
+  overflow:hidden;
+  background:
+  radial-gradient(circle at 15% 15%,rgba(170,220,120,.4) 0 10%,transparent 11%),
+  radial-gradient(circle at 75% 25%,rgba(170,220,120,.4) 0 12%,transparent 13%),
+  radial-gradient(circle at 35% 55%,rgba(170,220,120,.4) 0 12%,transparent 13%),
+  radial-gradient(circle at 88% 72%,rgba(170,220,120,.4) 0 13%,transparent 14%),
+  #fff9e9;
+}
+
+.route{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+.tile{
+  position:absolute;
+  width:125px;
+  height:120px;
+  background:white;
+  border:5px solid #76af50;
+  border-radius:20px;
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  font-weight:bold;
+  box-shadow:0 5px 10px rgba(0,0,0,.15);
+  z-index:3;
+}
+
+.tile .number{
+  position:absolute;
+  top:-16px;
+  left:-16px;
+  width:42px;
+  height:42px;
+  background:#2f7d33;
+  border-radius:50%;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border:3px solid white;
+  font-size:22px;
+}
+
+.tile .icon{
+  font-size:40px;
+}
+
+.end{
+  width:160px;
+  height:90px;
+  background:#3d9d3c;
+  color:white;
+  font-size:42px;
+}
+
+.current{
+  outline:8px solid gold;
+}
+
+.decor{
+  position:absolute;
+  font-size:50px;
+}
+
+.sign{
+  position:absolute;
+  left:30px;
+  top:30px;
+  font-size:60px;
+  z-index:2;
+}
+
+.learning-strip{
+  position:absolute;
+  left:10%;
+  right:10%;
+  bottom:15px;
+  background:rgba(255,255,255,.92);
+  border-radius:20px;
+  border:3px solid #d7e5c8;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+  padding:10px;
+  z-index:2;
+}
+
+.learn-item{
+  font-size:13px;
+}
+
+.learn-item b{
+  display:block;
+  font-size:16px;
+}
+
+.tokens{
+  position:absolute;
+  width:125px;
+  height:120px;
+  z-index:10;
+  transition:.4s;
+}
+
+.token{
+  position:absolute;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:18px;
+  border:2px solid white;
+}
+
+.p0{
+  background:#ff6b6b;
+  left:10px;
+  top:10px;
+}
+
+.p1{
+  background:#4dabf7;
+  left:80px;
+  top:10px;
+}
+
+.p2{
+  background:#ffd43b;
+  left:10px;
+  top:75px;
+}
+
+.p3{
+  background:#b197fc;
+  left:80px;
+  top:75px;
+}
+
+.card{
+  background:white;
+  border-radius:20px;
+  padding:14px;
+  margin-bottom:15px;
+  border:2px solid #dbeac8;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:16px;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer;
+  margin-top:10px;
+}
+
+.green{
+  background:#2f8f68;
+  color:white;
+}
+
+.orange{
+  background:#d9480f;
+  color:white;
+}
+
+.option{
+  background:#edf7ff;
+  border:2px solid #c9e7ff;
+  color:#17324d;
+  text-align:left;
+}
+
+.hidden{
+  display:none;
+}
+
+.player{
+  background:#f1f8ed;
+  border-radius:12px;
+  padding:8px;
+  margin-bottom:8px;
+}
+
+.active{
+  border:3px solid gold;
+}
+
+.dice{
+  font-size:60px;
+  text-align:center;
+}
+
+.feedback{
+  margin-top:10px;
+  font-weight:bold;
+}
+
+.correct{
+  color:green;
+}
+
+.wrong{
+  color:red;
+}
+
+.footer{
+  text-align:center;
+  padding:10px;
+}
+
+@media(max-width:900px){
+  .app{
+    grid-template-columns:1fr;
+  }
+
+  .board{
+    height:520px;
+  }
+
+  h1{
+    font-size:38px;
+  }
+
+  .tile{
+    width:90px;
+    height:90px;
+    font-size:12px;
+  }
+
+  .tile .icon{
+    font-size:26px;
+  }
+
+  .learning-strip{
+    display:none;
+  }
+}
+</style>
 </head>
+
 <body>
-  <header>
-    <h1>Our Learning Journey</h1>
-    <div class="subtitle">Exploring how our choices impact our planet</div>
-  </header>
 
-  <main class="app">
-    <section class="board-wrap">
-      <div class="board" id="board">
-        <svg class="route-svg" viewBox="0 0 1000 720" preserveAspectRatio="none">
-          <path d="M140 210 C250 160, 360 180, 455 190 S650 215, 755 220 C880 230, 900 350, 780 390 C660 435, 520 335, 430 430 C340 525, 210 455, 150 520 C95 580, 210 630, 330 595 C470 555, 490 485, 575 520 C650 552, 620 650, 735 620 C850 590, 820 500, 930 520" fill="none" stroke="#7eb751" stroke-width="36" stroke-linecap="round" stroke-dasharray="36 18" opacity=".95"/>
-          <path d="M140 210 C250 160, 360 180, 455 190 S650 215, 755 220 C880 230, 900 350, 780 390 C660 435, 520 335, 430 430 C340 525, 210 455, 150 520 C95 580, 210 630, 330 595 C470 555, 490 485, 575 520 C650 552, 620 650, 735 620 C850 590, 820 500, 930 520" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-dasharray="28 32" opacity=".95"/>
-        </svg>
-        <div class="signpost"><div class="pole"></div><div class="flag"></div><div class="arrow">START</div></div>
-        <div class="decor" style="left:90%;top:6%">☀️</div>
-        <div class="decor" style="left:91%;top:20%">🕊️</div>
-        <div class="decor" style="left:88%;top:50%">🦌</div>
-        <div class="decor" style="left:4%;top:66%">🐘</div>
-        <div class="decor" style="left:5%;top:42%">♻️</div>
-        <div class="decor" style="left:37%;top:50%">🌼</div>
-        <div class="decor" style="left:60%;top:57%">🧴</div>
-        <div class="decor" style="left:86%;top:84%">🌿</div>
-        <div class="learning-strip">
-          <div class="learn-item"><div class="learn-icon">💡</div><div><b>Think</b>Understand the key concepts</div></div>
-          <div class="learn-item"><div class="learn-icon">🔍</div><div><b>Explore</b>Discover and investigate</div></div>
-          <div class="learn-item"><div class="learn-icon">❤️</div><div><b>Care</b>Make responsible choices</div></div>
-          <div class="learn-item"><div class="learn-icon">🌍</div><div><b>Act</b>Make a positive impact</div></div>
-          <div class="learn-item"><div><b>Small actions today, a better world tomorrow!</b></div></div>
-        </div>
-      </div>
-    </section>
+<header>
+<h1>OUR LEARNING JOURNEY</h1>
+<div class="subtitle">Exploring how our choices impact our planet</div>
+</header>
 
-    <aside class="panel">
-      <div class="card" id="setupCard">
-        <h2>Game Setup</h2>
-        <div class="setup-row">
-          <label for="playerCount">Number of players</label>
-          <select id="playerCount">
-            <option value="2">2 players</option>
-            <option value="3">3 players</option>
-            <option value="4">4 players</option>
-          </select>
-        </div>
-        <div id="nameInputs"></div>
-        <button type="button" class="full" id="startBtn" onclick="startGame()">Start Game</button>
-        <p class="small">Rule: Roll the dice, answer the question. Correct answer = stay on the new tile. Wrong answer = move back to your old tile.</p>
-      </div>
+<div class="app">
 
-      <div class="card hidden" id="gameCard">
-        <h2>Current Turn</h2>
-        <div id="turnInfo" class="question-text"></div>
-        <div class="dice" id="dice">🎲</div>
-        <button class="full" id="rollBtn" onclick="rollDice()">Roll Dice</button>
-        <button class="full secondary hidden" id="nextBtn" onclick="nextTurn()">Next Player</button>
-      </div>
+<div class="board-wrap">
 
-      <div class="card hidden" id="questionCard">
-        <h3>Question</h3>
-        <div id="questionText" class="question-text"></div>
-        <div id="options" class="options"></div>
-        <div id="feedback" class="feedback"></div>
-      </div>
+<div class="board" id="board">
 
-      <div class="card hidden" id="playersCard">
-        <h3>Players</h3>
-        <div id="playerList" class="player-list"></div>
-      </div>
+<svg class="route" viewBox="0 0 1000 720">
 
-      <div class="card hidden" id="winnerCard">
-        <h2>🏆 Mission Complete!</h2>
-        <div id="winnerText" class="question-text"></div>
-        <button class="full" onclick="resetGame()">Play Again</button>
-      </div>
+<path d="M140 210 
+C250 160,360 180,455 190 
+S650 215,755 220 
+C880 230,900 350,780 390 
+C660 435,520 335,430 430 
+C340 525,210 455,150 520 
+C95 580,210 630,330 595 
+C470 555,490 485,575 520 
+C650 552,620 650,735 620 
+C850 590,820 500,930 520"
 
-      <button type="button" class="full warning" id="resetBtn" onclick="resetGame()">Reset</button>
-    </aside>
-  </main>
+fill="none"
+stroke="#7eb751"
+stroke-width="36"
+stroke-linecap="round"
+stroke-dasharray="36 18"/>
 
-  <div class="footer-note">Created as a classroom-friendly online activity inspired by the Mission Environment board game.</div>
+<path d="M140 210 
+C250 160,360 180,455 190 
+S650 215,755 220 
+C880 230,900 350,780 390 
+C660 435,520 335,430 430 
+C340 525,210 455,150 520 
+C95 580,210 630,330 595 
+C470 555,490 485,575 520 
+C650 552,620 650,735 620 
+C850 590,820 500,930 520"
 
-  <script>
-    const board = document.getElementById('board');
-    const tileData = [
-      { label: 'START', type: 'start', icon: '', x: 7, y: 11 },
-      { label: 'Greenhouse
-Gas', icon: '🌍', x: 29, y: 15 },
-      { label: 'Trees', icon: '🌳', x: 48, y: 14 },
-      { label: 'Temperature', icon: '🌡️', x: 68, y: 16 },
-      { label: 'Deforestation', icon: '🪓', x: 83, y: 31 },
-      { label: 'Net Zero', icon: '♻️', x: 53, y: 39 },
-      { label: 'Food Waste', icon: '🗑️', x: 21, y: 43 },
-      { label: 'Landfill', icon: '🚜', x: 14, y: 61 },
-      { label: 'Carbon
-Dioxide', icon: 'CO₂', x: 40, y: 62 },
-      { label: 'Animals', icon: '🐗', x: 70, y: 60 },
-      { label: 'Plastic', icon: '🧴', x: 68, y: 78 },
-      { label: 'END', type: 'end', icon: '', x: 47, y: 83 }
-    ];
+fill="none"
+stroke="white"
+stroke-width="4"
+stroke-linecap="round"
+stroke-dasharray="28 32"/>
 
-    const questions = [
-      { q: 'Name a greenhouse gas.', options: ['Carbon dioxide', 'Oxygen', 'Salt', 'Sand'], answer: 0, explain: 'Carbon dioxide is one greenhouse gas.' },
-      { q: 'Trees are important to keep the planet cool. True or false?', options: ['True', 'False'], answer: 0, explain: 'Trees provide shade and absorb carbon dioxide.' },
-      { q: 'Climate change always leads to increased temperatures everywhere. True or false?', options: ['True', 'False'], answer: 1, explain: 'Climate change can cause different effects, including extreme weather, floods, droughts and unusual cold spells.' },
-      { q: 'Deforestation means removing a forest for other land uses. True or false?', options: ['True', 'False'], answer: 0, explain: 'Deforestation is the clearing or removal of forests.' },
-      { q: 'By which year does Singapore aim to hit net-zero carbon emissions?', options: ['2030', '2050'], answer: 1, explain: 'Singapore aims to achieve net-zero emissions by 2050.' },
-      { q: 'How much food is wasted in Singapore every day?', options: ['About 20,000 kg', 'About 2,000,000 kg'], answer: 1, explain: 'The larger answer is the intended answer in the newspaper activity.' },
-      { q: 'What is the name of Singapore’s landfill?', options: ['Semakau Landfill', 'Semawa Landfill'], answer: 0, explain: 'Singapore’s offshore landfill is Semakau Landfill.' },
-      { q: 'Since carbon dioxide is a greenhouse gas, the world would be better if there was no carbon dioxide at all. True or false?', options: ['True', 'False'], answer: 1, explain: 'We need some carbon dioxide. The problem is having too much of it.' },
-      { q: 'Animals are unaffected by climate change. True or false?', options: ['True', 'False'], answer: 1, explain: 'Climate change affects animal habitats, food sources and survival.' },
-      { q: 'Plastic is biodegradable, which means it can decompose easily. True or false?', options: ['True', 'False'], answer: 1, explain: 'Most plastics do not break down easily.' },
-      { q: 'Which action helps reduce waste?', options: ['Use a reusable bottle', 'Throw away food daily', 'Use many plastic bags', 'Leave lights on'], answer: 0, explain: 'A reusable bottle helps reduce single-use plastic waste.' },
-      { q: 'Which is an example of renewable energy?', options: ['Solar energy', 'Coal', 'Petrol', 'Diesel'], answer: 0, explain: 'Solar energy comes from the sun and can be renewed naturally.' },
-      { q: 'What should you do with clean paper that you no longer need?', options: ['Recycle it', 'Burn it', 'Throw it on the floor', 'Hide it'], answer: 0, explain: 'Clean paper can usually be recycled.' },
-      { q: 'Which habit saves electricity?', options: ['Switch off lights when not in use', 'Keep air-con on with windows open', 'Charge devices overnight daily', 'Turn on all fans'], answer: 0, explain: 'Switching off unused lights saves electricity.' },
-      { q: 'Why are oceans important in climate change?', options: ['They absorb some heat and carbon dioxide', 'They create plastic', 'They stop all storms', 'They do not matter'], answer: 0, explain: 'Oceans absorb heat and some carbon dioxide, but they are affected too.' }
-    ];
+</svg>
 
-    const tokenIcons = ['🐼','🐢','🦊','🐯'];
-    let players = [];
-    let current = 0;
-    let oldPosition = 0;
-    let questionAnswered = false;
+<div class="sign">🪧</div>
 
-    function makeNameInputs() {
-      const count = Number(document.getElementById('playerCount').value);
-      const box = document.getElementById('nameInputs');
-      box.innerHTML = '';
-      for (let i = 0; i < count; i++) {
-        box.innerHTML += `<div class="setup-row"><label>Player ${i+1}</label><input id="pname${i}" value="Player ${i+1}" /></div>`;
-      }
-    }
+<div class="decor" style="left:88%;top:6%">☀️</div>
+<div class="decor" style="left:89%;top:20%">🕊️</div>
+<div class="decor" style="left:86%;top:50%">🦌</div>
+<div class="decor" style="left:4%;top:66%">🐘</div>
+<div class="decor" style="left:5%;top:42%">♻️</div>
+<div class="decor" style="left:35%;top:50%">🌼</div>
+<div class="decor" style="left:58%;top:58%">🧴</div>
 
-    document.getElementById('playerCount').addEventListener('change', makeNameInputs);
-    makeNameInputs();
+<div class="learning-strip">
 
-    function drawBoard() {
-      document.querySelectorAll('.tile,.tokens').forEach(e => e.remove());
-      tileData.forEach((tile, i) => {
-        const el = document.createElement('div');
-        el.className = `tile ${tile.type || ''}`;
-        el.id = `tile${i}`;
-        el.style.left = tile.x + '%';
-        el.style.top = tile.y + '%';
-        if (tile.type === 'start' || tile.type === 'end') {
-          el.textContent = tile.label;
-        } else {
-          el.innerHTML = `<div class="num">${i}</div><div class="pic">${tile.icon}</div><div>${tile.label.replace('\n','<br>')}</div>`;
-        }
-        board.appendChild(el);
-      });
-      players.forEach((p, i) => {
-        const holder = document.createElement('div');
-        holder.className = 'tokens';
-        holder.id = `tokenHolder${i}`;
-        const token = document.createElement('div');
-        token.className = `token p${i}`;
-        token.textContent = tokenIcons[i];
-        holder.appendChild(token);
-        board.appendChild(holder);
-        moveToken(i);
-      });
-    }
+<div class="learn-item">
+<b>💡 Think</b>
+Understand key concepts
+</div>
 
-    function startGame() {
-      const count = Number(document.getElementById('playerCount').value);
-      players = [];
-      for (let i = 0; i < count; i++) {
-        const nameInput = document.getElementById(`pname${i}`);
-        const playerName = nameInput && nameInput.value ? nameInput.value : `Player ${i+1}`;
-        players.push({ name: playerName, pos: 0, score: 0 });
-      }
-      current = 0;
-      document.getElementById('setupCard').classList.add('hidden');
-      document.getElementById('gameCard').classList.remove('hidden');
-      document.getElementById('playersCard').classList.remove('hidden');
-      document.getElementById('winnerCard').classList.add('hidden');
-      document.getElementById('questionCard').classList.add('hidden');
-      drawBoard();
-      updateUI();
-    }
+<div class="learn-item">
+<b>🔍 Explore</b>
+Discover and investigate
+</div>
 
-    function moveToken(playerIndex) {
-      const p = players[playerIndex];
-      const tile = tileData[p.pos];
-      const holder = document.getElementById(`tokenHolder${playerIndex}`);
-      if (!holder) return;
-      holder.style.left = tile.x + '%';
-      holder.style.top = tile.y + '%';
-    }
+<div class="learn-item">
+<b>❤️ Care</b>
+Make responsible choices
+</div>
 
-    function updateUI() {
-      document.querySelectorAll('.tile').forEach(e => e.classList.remove('current'));
-      if (players[current]) document.getElementById(`tile${players[current].pos}`).classList.add('current');
-      document.getElementById('turnInfo').innerHTML = `${tokenIcons[current]} <b>${players[current].name}</b>'s turn`;
-      document.getElementById('rollBtn').disabled = false;
-      document.getElementById('nextBtn').classList.add('hidden');
-      document.getElementById('dice').textContent = '🎲';
-      updatePlayerList();
-    }
+<div class="learn-item">
+<b>🌍 Act</b>
+Make a positive impact
+</div>
 
-    function updatePlayerList() {
-      const list = document.getElementById('playerList');
-      list.innerHTML = '';
-      players.forEach((p, i) => {
-        const row = document.createElement('div');
-        row.className = `player ${i === current ? 'active' : ''}`;
-        row.innerHTML = `<div class="badge p${i}">${tokenIcons[i]}</div><div><b>${p.name}</b><br><span class="small">Tile ${p.pos} / ${tileData.length - 1}</span></div><div class="score">⭐ ${p.score}</div>`;
-        list.appendChild(row);
-      });
-    }
+<div class="learn-item">
+<b>Small actions today,<br>a better world tomorrow!</b>
+</div>
 
-    function rollDice() {
-      document.getElementById('rollBtn').disabled = true;
-      document.getElementById('feedback').textContent = '';
-      oldPosition = players[current].pos;
-      const dice = Math.floor(Math.random() * 6) + 1;
-      document.getElementById('dice').textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][dice-1];
-      players[current].pos = Math.min(players[current].pos + dice, tileData.length - 1);
-      moveToken(current);
-      updatePlayerList();
+</div>
 
-      setTimeout(() => {
-        if (players[current].pos === tileData.length - 1) {
-          showWinner(players[current].name);
-        } else {
-          showQuestion(players[current].pos);
-        }
-      }, 500);
-    }
+</div>
+</div>
 
-    function showQuestion(pos) {
-      questionAnswered = false;
-      const q = questions[(pos - 1 + Math.floor(Math.random() * questions.length)) % questions.length];
-      window.currentQuestion = q;
-      document.getElementById('questionCard').classList.remove('hidden');
-      document.getElementById('questionText').textContent = q.q;
-      const options = document.getElementById('options');
-      options.innerHTML = '';
-      q.options.forEach((opt, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'option';
-        btn.textContent = opt;
-        btn.onclick = () => answerQuestion(i);
-        options.appendChild(btn);
-      });
-    }
+<div class="panel">
 
-    function answerQuestion(choice) {
-      if (questionAnswered) return;
-      questionAnswered = true;
-      const q = window.currentQuestion;
-      const feedback = document.getElementById('feedback');
-      document.querySelectorAll('.option').forEach(b => b.disabled = true);
+<div class="card" id="setupCard">
 
-      if (choice === q.answer) {
-        players[current].score += 1;
-        feedback.className = 'feedback correct';
-        feedback.textContent = 'Correct! ' + q.explain;
-      } else {
-        players[current].pos = oldPosition;
-        moveToken(current);
-        feedback.className = 'feedback wrong';
-        feedback.textContent = 'Not quite. ' + q.explain + ' Move back to your previous tile.';
-      }
-      updatePlayerList();
-      document.getElementById('nextBtn').classList.remove('hidden');
-    }
+<h2>Game Setup</h2>
 
-    function nextTurn() {
-      document.getElementById('questionCard').classList.add('hidden');
-      current = (current + 1) % players.length;
-      updateUI();
-    }
+<label>Number of players</label>
 
-    function showWinner(name) {
-      document.getElementById('gameCard').classList.add('hidden');
-      document.getElementById('questionCard').classList.add('hidden');
-      document.getElementById('winnerCard').classList.remove('hidden');
-      document.getElementById('winnerText').innerHTML = `${name} saved the forest! 🌳<br><span class="small">Well done, eco-hero!</span>`;
-      updatePlayerList();
-    }
+<select id="playerCount">
+<option value="2">2 players</option>
+<option value="3">3 players</option>
+<option value="4">4 players</option>
+</select>
 
-    function resetGame() {
-      players = [];
-      current = 0;
-      document.getElementById('setupCard').classList.remove('hidden');
-      document.getElementById('gameCard').classList.add('hidden');
-      document.getElementById('questionCard').classList.add('hidden');
-      document.getElementById('playersCard').classList.add('hidden');
-      document.getElementById('winnerCard').classList.add('hidden');
-      document.querySelectorAll('.tile,.tokens').forEach(e => e.remove());
-      makeNameInputs();
-    }
-  </script>
+<div id="nameInputs"></div>
+
+<button class="green" id="startBtn">Start Game</button>
+
+<p>
+Rule: Roll the dice, answer the question.<br>
+Correct answer = stay on tile.<br>
+Wrong answer = move back.
+</p>
+
+</div>
+
+<div class="card hidden" id="gameCard">
+
+<h2>Current Turn</h2>
+
+<div id="turnInfo"></div>
+
+<div class="dice" id="dice">🎲</div>
+
+<button class="green" id="rollBtn">Roll Dice</button>
+
+<button class="green hidden" id="nextBtn">
+Next Player
+</button>
+
+</div>
+
+<div class="card hidden" id="questionCard">
+
+<h3>Question</h3>
+
+<div id="questionText"></div>
+
+<div id="options"></div>
+
+<div id="feedback" class="feedback"></div>
+
+</div>
+
+<div class="card hidden" id="playersCard">
+
+<h3>Players</h3>
+
+<div id="playerList"></div>
+
+</div>
+
+<div class="card hidden" id="winnerCard">
+
+<h2>🏆 Mission Complete!</h2>
+
+<div id="winnerText"></div>
+
+<button class="green" id="playAgainBtn">
+Play Again
+</button>
+
+</div>
+
+<button class="orange" id="resetBtn">
+Reset
+</button>
+
+</div>
+
+</div>
+
+<div class="footer">
+Created as a classroom-friendly online activity inspired by Mission Environment.
+</div>
+
+<script>
+
+const tiles=[
+{label:"Greenhouse Gas",icon:"🌍",x:28,y:15},
+{label:"Trees",icon:"🌳",x:48,y:14},
+{label:"Temperature",icon:"🌡️",x:67,y:16},
+{label:"Deforestation",icon:"🪓",x:82,y:31},
+{label:"Net Zero",icon:"♻️",x:53,y:39},
+{label:"Food Waste",icon:"🗑️",x:21,y:43},
+{label:"Landfill",icon:"🚜",x:13,y:61},
+{label:"Carbon Dioxide",icon:"☁️",x:39,y:62},
+{label:"Animals",icon:"🐗",x:69,y:60},
+{label:"Plastic",icon:"🧴",x:67,y:78},
+{label:"END",icon:"",x:46,y:83,end:true}
+];
+
+const questions=[
+{
+q:"Trees help keep the planet cool. True or false?",
+options:["True","False"],
+answer:0
+},
+{
+q:"Singapore aims for net-zero emissions by?",
+options:["2030","2050"],
+answer:1
+},
+{
+q:"Which helps reduce waste?",
+options:[
+"Reusable bottle",
+"More plastic bags",
+"Throw food away"
+],
+answer:0
+},
+{
+q:"Animals are unaffected by climate change.",
+options:["True","False"],
+answer:1
+},
+{
+q:"Most plastics decompose easily.",
+options:["True","False"],
+answer:1
+}
+];
+
+const tokenIcons=["🐼","🐢","🦊","🐯"];
+
+let players=[];
+let currentPlayer=0;
+let oldPosition=0;
+let currentQuestion=null;
+
+const board=document.getElementById("board");
+
+function makeInputs(){
+
+let count=
+Number(document.getElementById("playerCount").value);
+
+let html="";
+
+for(let i=0;i<count;i++){
+
+html+=`
+<label>Player ${i+1}</label>
+<input id="pname${i}" value="Player ${i+1}">
+`;
+
+}
+
+document.getElementById("nameInputs").innerHTML=html;
+
+}
+
+makeInputs();
+
+document.getElementById("playerCount")
+.addEventListener("change",makeInputs);
+
+function drawBoard(){
+
+document.querySelectorAll(".tile,.tokens")
+.forEach(e=>e.remove());
+
+tiles.forEach((tile,i)=>{
+
+const div=document.createElement("div");
+
+div.className=
+tile.end?"tile end":"tile";
+
+div.id="tile"+i;
+
+div.style.left=tile.x+"%";
+div.style.top=tile.y+"%";
+
+if(tile.end){
+
+div.innerHTML="END";
+
+}else{
+
+div.innerHTML=`
+<div class="number">${i+1}</div>
+<div class="icon">${tile.icon}</div>
+<div>${tile.label}</div>
+`;
+
+}
+
+board.appendChild(div);
+
+});
+
+players.forEach((p,i)=>{
+
+const holder=document.createElement("div");
+
+holder.className="tokens";
+holder.id="tokenHolder"+i;
+
+const token=document.createElement("div");
+
+token.className="token p"+i;
+
+token.innerHTML=tokenIcons[i];
+
+holder.appendChild(token);
+
+board.appendChild(holder);
+
+moveToken(i);
+
+});
+
+}
+
+function moveToken(i){
+
+const holder=document.getElementById("tokenHolder"+i);
+
+if(!holder)return;
+
+const tile=tiles[players[i].pos];
+
+holder.style.left=tile.x+"%";
+holder.style.top=tile.y+"%";
+
+}
+
+function updatePlayers(){
+
+let html="";
+
+players.forEach((p,i)=>{
+
+html+=`
+<div class="player ${i===currentPlayer?"active":""}">
+${tokenIcons[i]}
+ <b>${p.name}</b>
+<br>
+Tile ${p.pos+1}
+<br>
+⭐ ${p.score}
+</div>
+`;
+
+});
+
+document.getElementById("playerList").innerHTML=html;
+
+}
+
+function updateTurn(){
+
+document.getElementById("turnInfo").innerHTML=
+`${tokenIcons[currentPlayer]} ${players[currentPlayer].name}'s turn`;
+
+document.getElementById("dice").innerHTML="🎲";
+
+updatePlayers();
+
+}
+
+function startGame(){
+
+let count=
+Number(document.getElementById("playerCount").value);
+
+players=[];
+
+for(let i=0;i<count;i++){
+
+let name=
+document.getElementById("pname"+i).value;
+
+players.push({
+name:name,
+pos:0,
+score:0
+});
+
+}
+
+currentPlayer=0;
+
+document.getElementById("setupCard")
+.classList.add("hidden");
+
+document.getElementById("gameCard")
+.classList.remove("hidden");
+
+document.getElementById("playersCard")
+.classList.remove("hidden");
+
+drawBoard();
+
+updateTurn();
+
+}
+
+function rollDice(){
+
+const dice=
+Math.floor(Math.random()*6)+1;
+
+document.getElementById("dice")
+.innerHTML=
+["⚀","⚁","⚂","⚃","⚄","⚅"][dice-1];
+
+oldPosition=
+players[currentPlayer].pos;
+
+players[currentPlayer].pos=
+Math.min(
+players[currentPlayer].pos+dice,
+tiles.length-1
+);
+
+moveToken(currentPlayer);
+
+updatePlayers();
+
+setTimeout(()=>{
+
+if(players[currentPlayer].pos===tiles.length-1){
+
+showWinner();
+
+}else{
+
+showQuestion();
+
+}
+
+},400);
+
+}
+
+function showQuestion(){
+
+currentQuestion=
+questions[
+Math.floor(Math.random()*questions.length)
+];
+
+document.getElementById("questionCard")
+.classList.remove("hidden");
+
+document.getElementById("questionText")
+.innerHTML=currentQuestion.q;
+
+let html="";
+
+currentQuestion.options.forEach((o,i)=>{
+
+html+=`
+<button class="option"
+onclick="answerQuestion(${i})">
+${o}
+</button>
+`;
+
+});
+
+document.getElementById("options")
+.innerHTML=html;
+
+document.getElementById("feedback")
+.innerHTML="";
+
+}
+
+function answerQuestion(choice){
+
+document.querySelectorAll(".option")
+.forEach(b=>b.disabled=true);
+
+if(choice===currentQuestion.answer){
+
+players[currentPlayer].score++;
+
+document.getElementById("feedback")
+.innerHTML=
+"<span class='correct'>Correct!</span>";
+
+}else{
+
+players[currentPlayer].pos=oldPosition;
+
+moveToken(currentPlayer);
+
+document.getElementById("feedback")
+.innerHTML=
+"<span class='wrong'>Wrong! Move back.</span>";
+
+}
+
+updatePlayers();
+
+document.getElementById("nextBtn")
+.classList.remove("hidden");
+
+}
+
+function nextTurn(){
+
+document.getElementById("questionCard")
+.classList.add("hidden");
+
+document.getElementById("nextBtn")
+.classList.add("hidden");
+
+currentPlayer++;
+
+if(currentPlayer>=players.length){
+
+currentPlayer=0;
+
+}
+
+updateTurn();
+
+}
+
+function showWinner(){
+
+document.getElementById("winnerCard")
+.classList.remove("hidden");
+
+document.getElementById("winnerText")
+.innerHTML=
+`${players[currentPlayer].name}
+saved the forest! 🌳`;
+
+}
+
+function resetGame(){
+
+location.reload();
+
+}
+
+document.getElementById("startBtn")
+.addEventListener("click",startGame);
+
+document.getElementById("rollBtn")
+.addEventListener("click",rollDice);
+
+document.getElementById("nextBtn")
+.addEventListener("click",nextTurn);
+
+document.getElementById("resetBtn")
+.addEventListener("click",resetGame);
+
+document.getElementById("playAgainBtn")
+.addEventListener("click",resetGame);
+
+</script>
+
 </body>
 </html>
