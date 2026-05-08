@@ -350,7 +350,7 @@
           </select>
         </div>
         <div id="nameInputs"></div>
-        <button class="full" onclick="startGame()">Start Game</button>
+        <button type="button" class="full" id="startBtn">Start Game</button>
         <p class="small">Rule: Roll the dice, answer the question. Correct answer = stay on the new tile. Wrong answer = move back to your old tile.</p>
       </div>
 
@@ -380,7 +380,7 @@
         <button class="full" onclick="resetGame()">Play Again</button>
       </div>
 
-      <button class="full warning" onclick="resetGame()">Reset</button>
+      <button type="button" class="full warning" id="resetBtn">Reset</button>
     </aside>
   </main>
 
@@ -439,6 +439,8 @@ Dioxide', icon: 'CO₂', x: 40, y: 62 },
     }
 
     document.getElementById('playerCount').addEventListener('change', makeNameInputs);
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
     makeNameInputs();
 
     function drawBoard() {
@@ -473,7 +475,9 @@ Dioxide', icon: 'CO₂', x: 40, y: 62 },
       const count = Number(document.getElementById('playerCount').value);
       players = [];
       for (let i = 0; i < count; i++) {
-        players.push({ name: document.getElementById(`pname${i}`).value || `Player ${i+1}`, pos: 0, score: 0 });
+        const nameInput = document.getElementById(`pname${i}`);
+        const playerName = nameInput && nameInput.value ? nameInput.value : `Player ${i+1}`;
+        players.push({ name: playerName, pos: 0, score: 0 });
       }
       current = 0;
       document.getElementById('setupCard').classList.add('hidden');
