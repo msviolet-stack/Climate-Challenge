@@ -350,7 +350,7 @@
           </select>
         </div>
         <div id="nameInputs"></div>
-        <button type="button" class="full" id="startBtn">Start Game</button>
+        <button type="button" class="full" id="startBtn" onclick="startGame()">Start Game</button>
         <p class="small">Rule: Roll the dice, answer the question. Correct answer = stay on the new tile. Wrong answer = move back to your old tile.</p>
       </div>
 
@@ -380,7 +380,7 @@
         <button class="full" onclick="resetGame()">Play Again</button>
       </div>
 
-      <button type="button" class="full warning" id="resetBtn">Reset</button>
+      <button type="button" class="full warning" id="resetBtn" onclick="resetGame()">Reset</button>
     </aside>
   </main>
 
@@ -439,8 +439,6 @@ Dioxide', icon: 'CO₂', x: 40, y: 62 },
     }
 
     document.getElementById('playerCount').addEventListener('change', makeNameInputs);
-    document.getElementById('startBtn').addEventListener('click', startGame);
-    document.getElementById('resetBtn').addEventListener('click', resetGame);
     makeNameInputs();
 
     function drawBoard() {
